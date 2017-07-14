@@ -34,26 +34,26 @@ and answer yes when asked if you want to install the packages. The packages that
 
 Follow these instructions to create and configure your environment. An environment file for supported OSes, which will install Python 3 and all the necessary packages used in this course.
 
-**Linux**
+For __Mac/OSX__:
+	
+	
+		conda env create -f ucu-sentiment-mac.yml
+		source activate ucu-sentiment
+		KERAS_BACKEND=tensorflow python -c "from keras import backend"
+	
 
-Download the _ucu-environment-unix.yml_ file.
+For __Linux__:
 
-```conda env create -f ucu-environment-unix.yml``` to create the environment.
+	
+		conda env create -f ucu-sentiment-linux.yml
+		source activate ucu-sentiment
+		KERAS_BACKEND=tensorflow python -c "from keras import backend"
+	
 
-```source activate ucu-sentiment``` to enter the environment.
+For __Windows__:
 
-**Mac OS X**
-
-Download the _ucu-environment-osx.yml_ file.
-
-```conda env create -f ucu-environment-osx.yml``` to create the environment.
-
-```source activate ucu-sentiment``` to enter the environment.
-
-**Windows**
-
-Download the _ucu-environment-windows.yml_ file.
-
-```conda env create -f ucu-environment-windows.yml``` to create the environment.
-
-```activate ucu-sentiment``` to enter the environment.
+	
+		conda env create -f ucu-sentiment-windows.yml
+		activate ucu-sentiment
+		set KERAS_BACKEND=tensorflow
+		python -c "from keras import backend"

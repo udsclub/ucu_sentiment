@@ -2,7 +2,6 @@ name: ucu-sentiment
 channels:
 - defaults
 dependencies:
-- rise=4.0.0b1=py35_0
 - _license=1.1=py35_1
 - alabaster=0.7.10=py35_0
 - anaconda-client=1.6.2=py35_0

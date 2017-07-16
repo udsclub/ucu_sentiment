@@ -191,12 +191,10 @@ dependencies:
   - jupyter-client==5.0.0
   - jupyter-console==5.1.0
   - jupyter-core==4.3.0
-  - keras==2.0.0
-  - opencv-python==3.2.0.6
+  - keras==2.0.5
   - prompt-toolkit==1.0.13
   - protobuf==3.2.0
   - rope-py3k==0.9.4.post1
   - tables==3.3.0
-  - tensorflow==1.0.0
-  - theano==0.8.2
+  - tensorflow==1.1.0
   - tqdm==4.11.2

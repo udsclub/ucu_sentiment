@@ -57,3 +57,7 @@ For __Windows__:
 		activate ucu-sentiment
 		set KERAS_BACKEND=tensorflow
 		python -c "from keras import backend"
+
+Then run additionaly
+		
+		!pip install fasttext gensim spacy textblob vaderSentiment

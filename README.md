@@ -60,4 +60,4 @@ For __Windows__:
 
 Then run additionaly
 		
-		!pip install fasttext gensim spacy textblob vaderSentiment
+		pip install fasttext gensim spacy textblob vaderSentiment

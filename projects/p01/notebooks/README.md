@@ -15,5 +15,5 @@ Results: f1-score = 0.9545<br>
 
 Preprocessing: TfidfVectorizer(ngram_range=(1,5), max_features=1000000, min_df=4)<br>
 Model: SVC(kernel = 'linear', C = 1)<br>
-Cross-validation: KFold(shuffle=True, random_state=1)<br>
-Results: f1-score = 0.9121<br>
+Cross-validation: train_test_split(test_size=0.1, random_state=42)<br>
+Results: f1-score = 0.9062<br>

@@ -16,12 +16,14 @@ from keras.layers import MaxPooling1D, LSTM, Conv1D, Dense
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.utils import to_categorical
 
+rus_alphabet = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
+
 # ohe функция
 def ohe(x, sz):
     return tf.to_float(tf.one_hot(x, sz, on_value=1, off_value=0, axis=-1))
 
 def create_vocab_set():
-    alphabet = (list(string.ascii_lowercase) + list(string.digits) + list(string.punctuation) + [' ', '\n'])
+    alphabet = (list(string.ascii_lowercase) + rus_alphabet + list(string.digits) + list(string.punctuation) + [' ', '\n'])
     vocab_size = len(alphabet)
     vocab = {}
     for ix, t in enumerate(alphabet):

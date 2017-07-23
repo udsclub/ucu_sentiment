@@ -12,9 +12,13 @@ from keras.preprocessing.text import Tokenizer
 import tensorflow as tf
 from keras.models import Model
 from keras.layers import Input, Lambda
-from keras.layers import MaxPooling1D, LSTM, Conv1D, Dense
+from keras.layers import MaxPooling1D, LSTM, Conv1D, Dense, Dropout
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.utils import to_categorical
+
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 rus_alphabet = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
 
@@ -23,7 +27,8 @@ def ohe(x, sz):
     return tf.to_float(tf.one_hot(x, sz, on_value=1, off_value=0, axis=-1))
 
 def create_vocab_set():
-    alphabet = (list(string.ascii_lowercase) + rus_alphabet + list(string.digits) + list(string.punctuation) + [' ', '\n'])
+
+    alphabet = (rus_alphabet + list(string.ascii_lowercase) + list(string.digits) + list(string.punctuation) + [' ', '\n'])
     vocab_size = len(alphabet)
     vocab = {}
     for ix, t in enumerate(alphabet):
@@ -64,14 +69,13 @@ VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
 # initialize dictionary size and maximum sentence length
-MAX_NB_WORDS = 10000
-MAX_SEQUENCE_LENGTH = 400
+MAX_SEQUENCE_LENGTH = 150
 
 NAME = "simple ohe lstm"
 
 data = pd.read_csv(os.path.join(dir_train, 'train_set.csv'), usecols=range(1,11), parse_dates=['timestamp', 'thread_timestamp'])
 data = data[
-    data.channel.isin(['career', 'big_data', 'deep_learning', 'hardware', 'kaggle_crackers',
+    data.channel.isin(['career', 'big_data', 'deep_learning', 'kaggle_crackers',
            'lang_python',  'lang_r', 'nlp', 'theory_and_practice', 'welcome', 'bayesian', '_meetings', 'datasets']) &
     data.main_msg
 ]
@@ -92,10 +96,10 @@ val_data = val_data.sort_values('channel').reset_index()[['channel', 'text']]
 train_data = train_data[~train_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 val_data = val_data[~val_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 
-train_text = train_data['text'].astype(str)
+train_text = train_data['text'].astype(str).apply(lambda x: x.lower())
 train_labels =  np.asarray(train_data['channel'], dtype='int8')
 
-val_text = val_data['text'].astype(str)
+val_text = val_data['text'].astype(str).apply(lambda x: x.lower())
 val_labels = np.asarray(val_data['channel'], dtype='int8')
 
 vocab, vocab_size = create_vocab_set()
@@ -117,7 +121,7 @@ callback_1 = TensorBoard(log_dir='./logs/logs_{}'.format(NAME), histogram_freq=0
 callback_2 = EarlyStopping(monitor='val_acc', min_delta=0, patience=5, verbose=0, mode='auto')
 # best model saving
 callback_3 = ModelCheckpoint("../models/model_{}.hdf5".format(NAME), monitor='val_acc',
-                                 save_best_only=True, verbose=1)
+                                 save_best_only=True, verbose=0)
 
 NAME = "char_cnn_ohe"
 # инициализация входа
@@ -126,12 +130,14 @@ in_sentence = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
 embedded = Lambda(ohe, output_shape=lambda x: (x[0], x[1], vocab_size), arguments={"sz": vocab_size})(in_sentence)
 block = embedded
 # свертки с MaxPooling
-for i in range(3):
-    block = Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid")(block)
-    if i == 0:
-        block = MaxPooling1D(pool_size=5)(block)
-# LSTM ячейка
+for i in range(6):
+    block = Conv1D(activation="relu", filters=150, kernel_size=4, padding="valid")(block)
+    # LSTM ячейка
 block = LSTM(128, dropout=0.1, recurrent_dropout=0.1)(block)
+block = Dense(100, activation='relu')(block)
+block = Dropout(0.5)(block)
+block = Dense(100, activation='relu')(block)
+block = Dropout(0.5)(block)
 block = Dense(100, activation='relu')(block)
 block = Dense(13, activation='softmax')(block)
 # собираем модель

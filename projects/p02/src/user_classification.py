@@ -3,12 +3,9 @@ from keras.preprocessing.sequence import pad_sequences
 import pandas as pd
 import numpy as np
 import os
-import json
+import re
 from datetime import date
 from fastnumbers import isfloat, isint
-import zipfile
-from sklearn.model_selection import train_test_split
-from keras.preprocessing.text import Tokenizer
 import tensorflow as tf
 from keras.models import Model
 from keras.layers import Input, Lambda
@@ -101,6 +98,14 @@ train_labels =  np.asarray(train_data['channel'], dtype='int8')
 
 val_text = val_data['text'].astype(str).apply(lambda x: x.lower())
 val_labels = np.asarray(val_data['channel'], dtype='int8')
+
+train_text = train_text \
+    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x)) \
+    .apply(lambda x: re.sub('\s+', ' ', x))
+
+val_text = val_text \
+    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x)) \
+    .apply(lambda x: re.sub('\s+', ' ', x))
 
 vocab, vocab_size = create_vocab_set()
 

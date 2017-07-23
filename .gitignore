@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Word2Vec and FastText files
+*.vec
+*.bin
+
 # C extensions
 *.so
 

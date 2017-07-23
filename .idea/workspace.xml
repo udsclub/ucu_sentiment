@@ -2,10 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f2275a02-4d8a-4dea-aa99-ba3e7f2aba25" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/projects/p02/notebooks/DS_project.R" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/projects/p02/notebooks/nn_baseline.ipynb" afterPath="$PROJECT_DIR$/projects/p02/notebooks/nn_baseline.ipynb" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/projects/p02/src/embedding_channel_classification.py" />
+      <change type="MOVED" beforePath="$PROJECT_DIR$/projects/p02/src/user_classification.py" afterPath="$PROJECT_DIR$/projects/p02/src/ohe_channel_classification.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/projects/p02/notebooks/user_classification.ipynb" afterPath="$PROJECT_DIR$/projects/p02/notebooks/user_classification.ipynb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/projects/p02/src/user_classification.py" afterPath="$PROJECT_DIR$/projects/p02/src/user_classification.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -38,11 +38,23 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="user_classification.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/projects/p02/src/user_classification.py">
+      <file leaf-file-name="ohe_channel_classification.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/projects/p02/src/ohe_channel_classification.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="18" column="0" lean-forward="true" selection-start-line="18" selection-start-column="0" selection-end-line="19" selection-end-column="0" />
+            <state relative-caret-position="442">
+              <caret line="146" column="0" lean-forward="false" selection-start-line="146" selection-start-column="0" selection-end-line="146" selection-end-column="46" />
+              <folding>
+                <element signature="e#0#13#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="embedding_channel_classification.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/projects/p02/src/embedding_channel_classification.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="607">
+              <caret line="147" column="71" lean-forward="false" selection-start-line="147" selection-start-column="71" selection-end-line="147" selection-end-column="71" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -59,6 +71,13 @@
       </list>
     </option>
   </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>vocab_size</find>
+      <find>GlobalMaxPooling1D</find>
+      <find>EMBEDDING_DIM</find>
+    </findStrings>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -67,6 +86,7 @@
       <list>
         <option value="$PROJECT_DIR$/projects/p02/notebooks/user_classification.py" />
         <option value="$PROJECT_DIR$/projects/p02/src/user_classification.py" />
+        <option value="$PROJECT_DIR$/projects/p02/src/embedding_channel_classification.py" />
       </list>
     </option>
   </component>
@@ -419,10 +439,20 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/projects/p02/src/user_classification.py">
+    <entry file="file://$PROJECT_DIR$/projects/p02/src/ohe_channel_classification.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="18" column="0" lean-forward="true" selection-start-line="18" selection-start-column="0" selection-end-line="19" selection-end-column="0" />
+        <state relative-caret-position="442">
+          <caret line="146" column="0" lean-forward="false" selection-start-line="146" selection-start-column="0" selection-end-line="146" selection-end-column="46" />
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/projects/p02/src/embedding_channel_classification.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="607">
+          <caret line="147" column="71" lean-forward="false" selection-start-line="147" selection-start-column="71" selection-end-line="147" selection-end-column="71" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
           </folding>

@@ -5,7 +5,7 @@ import os
 import re
 from datetime import date
 from fastnumbers import isfloat, isint
-import lightgbm as lgb
+import xgboost as xgb
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 dir_train = '../../data'
@@ -110,4 +110,4 @@ def save_model(model, name):
 
 def load_model(name):
     booster = xgb.Booster()
-    return booster.load_model(os.path.join(dir_train, '{0}.model'.format(name)))
+    return booster.load_model(os.path.join(dir_models, '{0}.model'.format(name)))

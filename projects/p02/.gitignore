@@ -1,2 +1,3 @@
 *.json
 *.csv
+.DS_STORE

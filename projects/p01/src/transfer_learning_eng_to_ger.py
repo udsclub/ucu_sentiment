@@ -9,18 +9,17 @@ from keras.preprocessing.sequence import pad_sequences
 import string
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # data path initialization
-TEXT_DATA_FILE_NEG = "../data/train_neg.csv"
-TEXT_DATA_FILE_POS = "../data/train_pos.csv"
-HEADER = False
+TEXT_DATA_FILE = "../data/filmstarts_train.csv"
+HEADER = True
 
 # parameters initialization
 VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
-
+np.random.seed(RANDOM_SEED)
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
         """Recall metric.
@@ -53,29 +52,30 @@ def f1(y_true, y_pred):
     return 2 * ((precision * recall) / (precision + recall))
 
 
-def load_data():
-    x = []
-    y = []
+def replace_ger_chars(x):
+    for i, j in zip(['ä', 'ö', 'ü', 'ß'], ["ae", "oe", "ue", "ss"]):
+        x = x.replace(i, j)
+    return x
 
-    fin1 = open(TEXT_DATA_FILE_NEG, "r", encoding="utf-8")
-    fin1_reader = csv.reader(fin1)
-    fin2 = open(TEXT_DATA_FILE_POS, "r", encoding="utf-8")
-    fin2_reader = csv.reader(fin2)
+
+def load_data():
+    labels = []
+    data = []
+
+    fin = open(TEXT_DATA_FILE, "r", encoding="utf-8")
+    fin_reader = csv.reader(fin)
 
     if HEADER:
-        next(fin1_reader)
-        next(fin2_reader)
-    for row in fin1_reader:
-        x.append(row[0])
-        y.append(1)
-    for row in fin2_reader:
-        x.append(row[0])
-        y.append(0)
-    return x, y
+        next(fin_reader)
+    for row in fin_reader:
+        labels.append(row[0])
+        data.append(replace_ger_chars(row[1]))
+
+    return data, labels
 
 
 data, labels = load_data()
-labels = np.asarray(labels, dtype = 'int8')
+labels = np.asarray(labels, dtype='int8')
 
 # spliting our original data on train and validation sets
 data_train, data_val, labels_train, labels_val = train_test_split(data,
@@ -115,10 +115,11 @@ X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
 from keras.models import Sequential
-from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
+from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense, GlobalAveragePooling1D
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
-
-NAME = "english_char_cnn_emb"
+from keras.regularizers import l2
+from keras.optimizers import Adam
+NAME = "transfer_learning_eng_to_ger"
 EMBEDDING_DIM = 100
 
 # initialize model
@@ -151,11 +152,12 @@ callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0,
 # best model saving
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
                                  save_best_only=True, verbose=0, mode='max')
+model.load_weights("models/model_english_char_cnn_emb.hdf5")
 
 model.compile(loss='binary_crossentropy',
-              optimizer='adam',
+              optimizer=Adam(lr=0.001),
               metrics=[f1])
 
 model.summary()
 model.fit(X_train, labels_train, validation_data=[X_val, labels_val],
-          batch_size=1024, epochs=1000, callbacks=[callback_1, callback_2, callback_3])
+          batch_size=256, epochs=1000, callbacks=[callback_1, callback_2, callback_3])

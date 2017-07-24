@@ -1,8 +1,6 @@
 import pandas as pd
-import numpy as np
 import os
 import numpy as np
-import zipfile
 from keras.utils import to_categorical
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -13,8 +11,11 @@ from gensim import models
 from keras.layers import Dropout
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.models import Sequential
-from keras.layers import Dense, Activation, LSTM
+from keras.layers import Dense, Activation, LSTM, Bidirectional
 from keras.layers import Embedding
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 MAX_NB_WORDS = 50000
 EMBEDDING_DIM = 300
@@ -24,8 +25,6 @@ RANDOM_SEED = 42
 
 DATA_DIR = '../data'
 EMBEDDING_FILE = 'fasttext_vocab.vec'
-
-RUS_ALPHABET = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
 
 MAPPINGS = {
     'career': 0,
@@ -43,7 +42,7 @@ MAPPINGS = {
 }
 
 def load_data():
-    data = pd.read_csv(os.path.join(dir_train, 'train_set.csv'), usecols=range(1,11), parse_dates=['timestamp', 'thread_timestamp'])
+    data = pd.read_csv(os.path.join(DATA_DIR, 'train_set.csv'), usecols=range(1,11), parse_dates=['timestamp', 'thread_timestamp'])
     data = data[
         data.channel.isin(['career', 'big_data', 'deep_learning', 'kaggle_crackers',
                'lang_python',  'lang_r', 'nlp', 'theory_and_practice', 'welcome', 'bayesian', '_meetings', 'datasets']) &
@@ -56,11 +55,11 @@ def load_data():
     val = data[data['timestamp'] > date_before]
 
     train_data = train[['channel', 'text']].reset_index()[['channel', 'text']]
-    train_data['channel'] = train_data.channel.map(mappings)
+    train_data['channel'] = train_data.channel.map(MAPPINGS)
     train_data = train_data.sort_values('channel').reset_index()[['channel', 'text']]
 
     val_data = val[['channel', 'text']].reset_index()[['channel', 'text']]
-    val_data['channel'] = val_data.channel.map(mappings)
+    val_data['channel'] = val_data.channel.map(MAPPINGS)
     val_data = val_data.sort_values('channel').reset_index()[['channel', 'text']]
 
     train_data.text = train_data.text.astype(str)\
@@ -74,12 +73,11 @@ def load_data():
     val_data = val_data[~val_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 
     train_text = train_data['text'].astype(str).apply(lambda x: x.lower())
-    train_labels =  np.asarray(train_data['channel'], dtype='int8')
+    train_labels = np.asarray(train_data['channel'], dtype='int8')
 
     val_text = val_data['text'].astype(str).apply(lambda x: x.lower())
     val_labels = np.asarray(val_data['channel'], dtype='int8')
-
-    return (train_text, train_labels, val_text, val_labels)
+    return train_text, train_labels, val_text, val_labels
 
 
 def prepare_embeddings(word_indexes):
@@ -103,6 +101,7 @@ def prepare_embeddings(word_indexes):
             continue
 
     return prepared_embedding_matrix
+
 
 def transform(tokenizer_object, train, test):
     sequences_train = tokenizer_object.texts_to_sequences(train)  # transform words to its indexes
@@ -130,7 +129,7 @@ def main():
     embedding_matrix = prepare_embeddings(word_index)
 
     # инициализируем слой эмбеддингов
-    NAME = "modified_lstm"
+    NAME = "lstm_channel_classification"
 
     # callbacks initialization
     # automatic generation of learning curves
@@ -140,7 +139,7 @@ def main():
     callback_2 = EarlyStopping(monitor='val_acc', min_delta=0, patience=5, verbose=0, mode='auto')
     # best model saving
     callback_3 = ModelCheckpoint("../models/model_{}.hdf5".format(NAME), monitor='val_acc',
-                                 save_best_only=True, verbose=1)
+                                 save_best_only=True, verbose=0)
 
     embedding_layer = Embedding(embedding_matrix.shape[0],
                                 embedding_matrix.shape[1],
@@ -152,7 +151,7 @@ def main():
     model = Sequential()
     model.add(embedding_layer)
     model.add(Dropout(0.2))
-    model.add(LSTM(100, dropout=0.1, recurrent_dropout=0.1))
+    model.add(Bidirectional(LSTM(200, dropout=0.1, recurrent_dropout=0.1)))
     model.add(Dropout(0.2))
     model.add(Dense(12))
     model.add(Activation('softmax'))

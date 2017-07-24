@@ -1,25 +1,20 @@
-# coding: utf-8
-
-# In[96]:
-
 import os
 import numpy as np
 from keras import backend as K
+import csv
 
 from sklearn.model_selection import train_test_split
 
 from keras.preprocessing.sequence import pad_sequences
+import string
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-# In[97]:
-
 # data path initialization
-BASE_DIR = '../'
-TEXT_DATA_DIR = BASE_DIR + 'data/'
-TEXT_DATA_FILE = "ukrainian_reviews_corpus.csv"
-HEADER = True
+TEXT_DATA_FILE_NEG = "../data/train_neg.csv"
+TEXT_DATA_FILE_POS = "../data/train_pos.csv"
+HEADER = False
 
 # parameters initialization
 VALIDATION_SPLIT = 0.1
@@ -59,65 +54,45 @@ def f1(y_true, y_pred):
 
 
 def load_data():
-    # function for loading data
     x = []
-    iy = -1
     y = []
-    with open(os.path.join(TEXT_DATA_DIR, TEXT_DATA_FILE), "r", encoding="utf-8") as f:
-        if HEADER:
-            _ = next(f)
-        for line in f:
-            if len(line) < 2 or line[1] != '|':
-                x[iy] = x[iy] + line.rstrip('\n').replace("'", "")
-            else:
-                temp_y, temp_x = line.rstrip("\n").split("|", 1)
-                x.append(temp_x.replace("'", ""))
-                y.append(temp_y)
-                iy += 1
+
+    fin1 = open(TEXT_DATA_FILE_NEG, "r", encoding="utf-8")
+    fin1_reader = csv.reader(fin1)
+    fin2 = open(TEXT_DATA_FILE_POS, "r", encoding="utf-8")
+    fin2_reader = csv.reader(fin2)
+
+    if HEADER:
+        next(fin1_reader)
+        next(fin2_reader)
+    for row in fin1_reader:
+        x.append(row[0])
+        y.append(1)
+    for row in fin2_reader:
+        x.append(row[0])
+        y.append(0)
     return x, y
 
 
-# In[99]:
-
 data, labels = load_data()
-labels = np.asarray(labels, dtype='int8')
-
-# In[100]:
+labels = np.asarray(labels, dtype = 'int8')
 
 # spliting our original data on train and validation sets
-data_train, data_val, labels_train, labels_val = train_test_split(data, np.asarray(labels, dtype='int8'),
-                                                                  test_size=VALIDATION_SPLIT, random_state=RANDOM_SEED,
-                                                                  stratify=labels)
+data_train, data_val, labels_train, labels_val = train_test_split(data,
+                                                                  np.asarray(labels, dtype = 'int8'),
+                                                                  test_size = VALIDATION_SPLIT,
+                                                                  random_state = RANDOM_SEED,
+                                                                  stratify = labels)
 
-# initialize dictionary size and maximum sentence length
 MAX_SEQUENCE_LENGTH = 400
 
-# In[102]:
-
-import string
-from keras.preprocessing.sequence import pad_sequences
-
-# In[103]:
-
-ukr_alphabet = ['а', 'б', 'в', 'г', 'ґ', 'д', 'е', 'є', 'ж', 'з', 'і', 'ї', 'й',
-                'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'и',
-                'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ь', 'ю', 'я']
-
-# In[108]:
-
-alphabet = (list(ukr_alphabet) + list(string.digits) + list(string.punctuation) + list(string.whitespace))
-vocab_size = len(alphabet)
-
-
-# In[105]:
 
 def create_vocab_set():
-    alphabet = (list(ukr_alphabet) + list(string.digits) +
-                list(string.punctuation) + list(string.whitespace))
+    alphabet = (list(string.ascii_lowercase) + list(string.digits) + list(string.punctuation) + list(string.whitespace))
     vocab_size = len(alphabet)
     vocab = {}
     for ix, t in enumerate(alphabet):
-        vocab[t] = ix + 1
+        vocab[t] = ix+1
     return vocab, vocab_size
 
 
@@ -131,7 +106,6 @@ def text2sequence(text, vocab):
                 temp[-1].append(char)
     return temp
 
-
 vocab, vocab_size = create_vocab_set()
 
 X_train = text2sequence(data_train, vocab)
@@ -144,9 +118,10 @@ from keras.models import Sequential
 from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-NAME = "char_cnn_emb_ukr"
+NAME = "english_char_cnn_emb"
 EMBEDDING_DIM = 100
 
+# initialize model
 from keras.layers import concatenate, Input
 from keras.models import Model
 
@@ -170,12 +145,12 @@ model = Model(inputs=words_input, outputs=output)
 # callbacks initialization
 # automatic generation of learning curves
 callback_1 = TensorBoard(log_dir='../logs/logs_{}'.format(NAME), histogram_freq=0,
-                         write_graph=False, write_images=False)
+                             write_graph=False, write_images=False)
 # stop training model if accuracy does not increase more than five epochs
 callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0, mode='max')
 # best model saving
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
-                             save_best_only=True, mode='max', verbose=0)
+                                 save_best_only=True, verbose=0, mode='max')
 
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
@@ -184,4 +159,3 @@ model.compile(loss='binary_crossentropy',
 model.summary()
 model.fit(X_train, labels_train, validation_data=[X_val, labels_val],
           batch_size=1024, epochs=1000, callbacks=[callback_1, callback_2, callback_3])
-

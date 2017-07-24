@@ -9,13 +9,13 @@ from fastnumbers import isfloat, isint
 import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Embedding
-from keras.layers import MaxPooling1D, LSTM, Conv1D, Dense, Dropout, GlobalMaxPooling1D
+from keras.layers import BatchNormalization, SpatialDropout1D, Conv1D, Dense, Dropout, GlobalMaxPooling1D
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.utils import to_categorical
 
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 rus_alphabet = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
 
@@ -49,11 +49,10 @@ mappings = {
     'kaggle_crackers': 5,
     'big_data': 6,
     'lang_r': 7,
-    'hardware': 8,
-    'nlp': 9,
-    'welcome': 10,
-    'datasets': 11,
-    'bayesian': 12
+    'nlp': 8,
+    'welcome': 9,
+    'datasets': 10,
+    'bayesian': 11
 }
 
 
@@ -75,7 +74,7 @@ data = data[
 
 # data_train = data.
 date_before = date(2017, 4, 1)
-train = data[data['timestamp'] < date_before]
+train = data[data['timestamp'] <= date_before]
 val = data[data['timestamp'] > date_before]
 
 train_data = train[['channel', 'text']].reset_index()[['channel', 'text']]
@@ -111,39 +110,44 @@ X_val = text2sequence(val_text, vocab)
 X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
-train_labels = to_categorical(train_labels, num_classes=13)
-val_labels = to_categorical(val_labels, num_classes=13)
+train_labels = to_categorical(train_labels, num_classes=12)
+val_labels = to_categorical(val_labels, num_classes=12)
 
 # callbacks initialization
 # automatic generation of learning curves
 callback_1 = TensorBoard(log_dir='./logs/logs_{}'.format(NAME), histogram_freq=0,
                              write_graph=False, write_images=False)
 # stop training model if accuracy does not increase more than five epochs
-callback_2 = EarlyStopping(monitor='val_acc', min_delta=0, patience=5, verbose=0, mode='auto')
+callback_2 = EarlyStopping(monitor='val_acc', min_delta=0, patience=7, verbose=0, mode='auto')
 # best model saving
 callback_3 = ModelCheckpoint("../models/model_{}.hdf5".format(NAME), monitor='val_acc',
                                  save_best_only=True, verbose=0)
 
+
 NAME = "char_cnn_emb"
-# EMBEDDING_DIM = 50
+EMBEDDING_DIM = 200
+# инициализируем модель
+model = Sequential()
+model.add(Embedding(vocab_size+1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))
+model.add(Conv1D(activation="relu", filters=100, kernel_size=3, padding="valid"))
+model.add(SpatialDropout1D(0.2))
+model.add(BatchNormalization())
+model.add(Conv1D(activation="relu", filters=200, kernel_size=3, padding="valid"))
+model.add(SpatialDropout1D(0.2))
+model.add(BatchNormalization())
+model.add(Conv1D(activation="relu", filters=300, kernel_size=3, padding="valid"))
+model.add(GlobalMaxPooling1D())
+model.add(Dense(200, activation='relu'))
+model.add(Dropout(0.5))
+model.add(BatchNormalization())
+model.add(Dense(200, activation='relu'))
+model.add(BatchNormalization())
+model.add(Dense(12, activation='softmax'))
 
-for EMBEDDING_DIM in range(50, 200, 50):
-    # инициализируем модель
-    model = Sequential()
-    model.add(Embedding(vocab_size+1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))
-    model.add(Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid"))
-    model.add(Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid"))
-    model.add(Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid"))
-    model.add(GlobalMaxPooling1D())
-    model.add(Dense(100, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(100, activation='relu'))
-    model.add(Dense(13, activation='softmax'))
+model.compile(loss='categorical_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
 
-    model.compile(loss='categorical_crossentropy',
-                  optimizer='adam',
-                  metrics=['accuracy'])
-
-    model.summary()
-    model.fit(X_train, train_labels, validation_data=[X_val, val_labels],
-             batch_size=1024, epochs=100, callbacks=[callback_1, callback_2, callback_3])
+model.summary()
+model.fit(X_train, train_labels, validation_data=[X_val, val_labels],
+         batch_size=1024, epochs=100, callbacks=[callback_1, callback_2, callback_3])

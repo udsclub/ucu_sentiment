@@ -8,8 +8,8 @@ from datetime import date
 from fastnumbers import isfloat, isint
 import tensorflow as tf
 from keras.models import Model
-from keras.layers import Input, Lambda
-from keras.layers import MaxPooling1D, LSTM, Conv1D, Dense, Dropout
+from keras.layers import Input, Lambda, concatenate
+from keras.layers import MaxPooling1D, LSTM, Conv1D, Dense, Dropout, Bidirectional
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.utils import to_categorical
 
@@ -53,11 +53,10 @@ mappings = {
     'kaggle_crackers': 5,
     'big_data': 6,
     'lang_r': 7,
-    'hardware': 8,
-    'nlp': 9,
-    'welcome': 10,
-    'datasets': 11,
-    'bayesian': 12
+    'nlp': 8,
+    'welcome': 9,
+    'datasets': 10,
+    'bayesian': 11
 }
 
 
@@ -66,7 +65,7 @@ VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
 # initialize dictionary size and maximum sentence length
-MAX_SEQUENCE_LENGTH = 150
+MAX_SEQUENCE_LENGTH = 200
 
 NAME = "simple ohe lstm"
 
@@ -115,8 +114,8 @@ X_val = text2sequence(val_text, vocab)
 X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
-train_labels = to_categorical(train_labels, num_classes=13)
-val_labels = to_categorical(val_labels, num_classes=13)
+train_labels = to_categorical(train_labels, num_classes=12)
+val_labels = to_categorical(val_labels, num_classes=12)
 
 # callbacks initialization
 # automatic generation of learning curves
@@ -135,16 +134,17 @@ in_sentence = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
 embedded = Lambda(ohe, output_shape=lambda x: (x[0], x[1], vocab_size), arguments={"sz": vocab_size})(in_sentence)
 block = embedded
 # свертки с MaxPooling
-for i in range(6):
-    block = Conv1D(activation="relu", filters=150, kernel_size=4, padding="valid")(block)
+for i in range(3):
+    block1 = Conv1D(activation="relu", filters=150, kernel_size=2, padding="same")(block)
+    block2 = Conv1D(activation="relu", filters=150, kernel_size=3, padding="same")(block)
+    block3 = Conv1D(activation="relu", filters=150, kernel_size=4, padding="same")(block)
+    block = concatenate([block1, block2, block3])
     # LSTM ячейка
 block = LSTM(128, dropout=0.1, recurrent_dropout=0.1)(block)
 block = Dense(100, activation='relu')(block)
 block = Dropout(0.5)(block)
 block = Dense(100, activation='relu')(block)
-block = Dropout(0.5)(block)
-block = Dense(100, activation='relu')(block)
-block = Dense(13, activation='softmax')(block)
+block = Dense(12, activation='softmax')(block)
 # собираем модель
 model = Model(inputs=in_sentence, outputs=block)
 model.compile(loss='categorical_crossentropy',
@@ -153,4 +153,4 @@ model.compile(loss='categorical_crossentropy',
 
 model.summary()
 model.fit(X_train, train_labels, validation_data=[X_val, val_labels],
-         batch_size=1024, epochs=100, callbacks=[callback_1, callback_2, callback_3])
+         batch_size=256, epochs=100, callbacks=[callback_1, callback_2, callback_3])

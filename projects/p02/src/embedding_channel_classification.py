@@ -85,7 +85,14 @@ val_data = val[['channel', 'text']].reset_index()[['channel', 'text']]
 val_data['channel'] = val_data.channel.map(mappings)
 val_data = val_data.sort_values('channel').reset_index()[['channel', 'text']]
 
+train_data.text = train_data.text.astype(str)\
+    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x))\
+    .apply(lambda x: re.sub('\s+', ' ', x))
 train_data = train_data[~train_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
+
+val_data.text = val_data.text.astype(str)\
+    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x))\
+    .apply(lambda x: re.sub('\s+', ' ', x))
 val_data = val_data[~val_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 
 train_text = train_data['text'].astype(str).apply(lambda x: x.lower())
@@ -93,14 +100,6 @@ train_labels =  np.asarray(train_data['channel'], dtype='int8')
 
 val_text = val_data['text'].astype(str).apply(lambda x: x.lower())
 val_labels = np.asarray(val_data['channel'], dtype='int8')
-
-train_text = train_text \
-    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x)) \
-    .apply(lambda x: re.sub('\s+', ' ', x))
-
-val_text = val_text \
-    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x)) \
-    .apply(lambda x: re.sub('\s+', ' ', x))
 
 vocab, vocab_size = create_vocab_set()
 

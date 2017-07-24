@@ -43,29 +43,34 @@ MAPPINGS = {
 }
 
 def load_data():
-    data = pd.read_csv(os.path.join(DATA_DIR, 'train_set.csv'), usecols=range(1,11), parse_dates=['timestamp',
-                                                                                                   'thread_timestamp'])
+    data = pd.read_csv(os.path.join(dir_train, 'train_set.csv'), usecols=range(1,11), parse_dates=['timestamp', 'thread_timestamp'])
     data = data[
         data.channel.isin(['career', 'big_data', 'deep_learning', 'kaggle_crackers',
-               'lang_python',  'lang_r', 'nlp', 'theory_and_practice', 'welcome',
-                'bayesian', '_meetings', 'datasets']) &
+               'lang_python',  'lang_r', 'nlp', 'theory_and_practice', 'welcome', 'bayesian', '_meetings', 'datasets']) &
         data.main_msg
     ]
 
     # data_train = data.
     date_before = date(2017, 4, 1)
-    train = data[data['timestamp'] < date_before]
+    train = data[data['timestamp'] <= date_before]
     val = data[data['timestamp'] > date_before]
 
     train_data = train[['channel', 'text']].reset_index()[['channel', 'text']]
-    train_data['channel'] = train_data.channel.map(MAPPINGS)
+    train_data['channel'] = train_data.channel.map(mappings)
     train_data = train_data.sort_values('channel').reset_index()[['channel', 'text']]
 
     val_data = val[['channel', 'text']].reset_index()[['channel', 'text']]
-    val_data['channel'] = val_data.channel.map(MAPPINGS)
+    val_data['channel'] = val_data.channel.map(mappings)
     val_data = val_data.sort_values('channel').reset_index()[['channel', 'text']]
 
+    train_data.text = train_data.text.astype(str)\
+        .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x))\
+        .apply(lambda x: re.sub('\s+', ' ', x))
     train_data = train_data[~train_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
+
+    val_data.text = val_data.text.astype(str)\
+        .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x))\
+        .apply(lambda x: re.sub('\s+', ' ', x))
     val_data = val_data[~val_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 
     train_text = train_data['text'].astype(str).apply(lambda x: x.lower())
@@ -73,14 +78,6 @@ def load_data():
 
     val_text = val_data['text'].astype(str).apply(lambda x: x.lower())
     val_labels = np.asarray(val_data['channel'], dtype='int8')
-
-    train_text = train_text \
-        .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x)) \
-        .apply(lambda x: re.sub('\s+', ' ', x))
-
-    val_text = val_text \
-        .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x)) \
-        .apply(lambda x: re.sub('\s+', ' ', x))
 
     return (train_text, train_labels, val_text, val_labels)
 

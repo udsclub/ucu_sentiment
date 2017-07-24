@@ -125,22 +125,23 @@ callback_3 = ModelCheckpoint("../models/model_{}.hdf5".format(NAME), monitor='va
 
 
 NAME = "char_cnn_emb"
-EMBEDDING_DIM = 200
+EMBEDDING_DIM = 150
 # инициализируем модель
 model = Sequential()
 model.add(Embedding(vocab_size+1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))
-model.add(Conv1D(activation="relu", filters=100, kernel_size=3, padding="valid"))
+model.add(SpatialDropout1D(0.2))
+model.add(Conv1D(activation="relu", filters=150, kernel_size=3, padding="valid"))
 model.add(SpatialDropout1D(0.2))
 model.add(BatchNormalization())
-model.add(Conv1D(activation="relu", filters=200, kernel_size=3, padding="valid"))
+model.add(Conv1D(activation="relu", filters=150, kernel_size=3, padding="valid"))
 model.add(SpatialDropout1D(0.2))
 model.add(BatchNormalization())
-model.add(Conv1D(activation="relu", filters=300, kernel_size=3, padding="valid"))
+model.add(Conv1D(activation="relu", filters=150, kernel_size=3, padding="valid"))
 model.add(GlobalMaxPooling1D())
-model.add(Dense(200, activation='relu'))
+model.add(Dense(150, activation='relu'))
 model.add(Dropout(0.5))
 model.add(BatchNormalization())
-model.add(Dense(200, activation='relu'))
+model.add(Dense(150, activation='relu'))
 model.add(BatchNormalization())
 model.add(Dense(12, activation='softmax'))
 

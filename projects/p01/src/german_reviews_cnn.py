@@ -9,17 +9,15 @@ from keras.preprocessing.sequence import pad_sequences
 import string
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # data path initialization
-TEXT_DATA_FILE_NEG = "../data/train_neg.csv"
-TEXT_DATA_FILE_POS = "../data/train_pos.csv"
-HEADER = False
+TEXT_DATA_FILE = "../data/filmstarts_train.csv"
+HEADER = True
 
 # parameters initialization
 VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
-
 
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
@@ -52,27 +50,20 @@ def f1(y_true, y_pred):
     recall = recall(y_true, y_pred)
     return 2 * ((precision * recall) / (precision + recall))
 
-
 def load_data():
-    x = []
-    y = []
+    labels = []
+    data = []
 
-    fin1 = open(TEXT_DATA_FILE_NEG, "r", encoding="utf-8")
-    fin1_reader = csv.reader(fin1)
-    fin2 = open(TEXT_DATA_FILE_POS, "r", encoding="utf-8")
-    fin2_reader = csv.reader(fin2)
+    fin = open(TEXT_DATA_FILE, "r", encoding = "utf-8")
+    fin_reader = csv.reader(fin)
 
     if HEADER:
-        next(fin1_reader)
-        next(fin2_reader)
-    for row in fin1_reader:
-        x.append(row[0])
-        y.append(1)
-    for row in fin2_reader:
-        x.append(row[0])
-        y.append(0)
-    return x, y
-
+        next(fin_reader)
+    for row in fin_reader:
+        labels.append(row[0])
+        data.append(row[1])
+    
+    return data, labels
 
 data, labels = load_data()
 labels = np.asarray(labels, dtype = 'int8')
@@ -84,11 +75,11 @@ data_train, data_val, labels_train, labels_val = train_test_split(data,
                                                                   random_state = RANDOM_SEED,
                                                                   stratify = labels)
 
-MAX_SEQUENCE_LENGTH = 600
+MAX_SEQUENCE_LENGTH = 400
 
 
 def create_vocab_set():
-    alphabet = (list(string.ascii_lowercase) + list(string.digits) + list(string.punctuation) + list(string.whitespace))
+    alphabet = (list(string.ascii_lowercase) + ['ä', 'ö', 'ü', 'ß'] + list(string.digits) + list(string.punctuation) + list(string.whitespace))
     vocab_size = len(alphabet)
     vocab = {}
     for ix, t in enumerate(alphabet):
@@ -115,32 +106,43 @@ X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
 from keras.models import Sequential
-from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
+from keras.layers import GlobalMaxPooling1D, Conv1D, SpatialDropout1D, Embedding, Dense, BatchNormalization
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-NAME = "english_char_cnn_emb"
+NAME = "german_char_cnn_emb"
 EMBEDDING_DIM = 100
 
 # initialize model
 from keras.layers import concatenate, Input
 from keras.models import Model
 
-words_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
+# words_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
+#
+# x = Embedding(vocab_size + 1,
+#               EMBEDDING_DIM,
+#               input_length=MAX_SEQUENCE_LENGTH,
+#               trainable=True)(words_input)
+#
+# x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
+# x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
+# x3 = Conv1D(activation="relu", filters=100, kernel_size=4, padding="same")(x)
+# x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
+# x = concatenate([x1, x2, x3, x4])
+# x = GlobalMaxPooling1D()(x)
+# x = Dense(100, activation='relu')(x)
+# output = Dense(1, activation='sigmoid')(x)
+# model = Model(inputs=words_input, outputs=output)
 
-x = Embedding(vocab_size + 1,
-              EMBEDDING_DIM,
-              input_length=MAX_SEQUENCE_LENGTH,
-              trainable=True)(words_input)
+model = Sequential()
+model.add(Embedding(vocab_size+1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))
+model.add(Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid"))
+model.add(SpatialDropout1D(0.1))
+model.add(BatchNormalization())
+model.add(Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid"))
+model.add(GlobalMaxPooling1D())
+model.add(Dense(100, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))
 
-x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
-x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
-x3 = Conv1D(activation="relu", filters=100, kernel_size=4, padding="same")(x)
-x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
-x = concatenate([x1, x2, x3, x4])
-x = GlobalMaxPooling1D()(x)
-x = Dense(100, activation='relu')(x)
-output = Dense(1, activation='sigmoid')(x)
-model = Model(inputs=words_input, outputs=output)
 
 # callbacks initialization
 # automatic generation of learning curves
@@ -151,11 +153,10 @@ callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0,
 # best model saving
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
                                  save_best_only=True, verbose=0, mode='max')
-
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=[f1])
-
 model.summary()
 model.fit(X_train, labels_train, validation_data=[X_val, labels_val],
           batch_size=1024, epochs=1000, callbacks=[callback_1, callback_2, callback_3])
+

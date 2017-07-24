@@ -142,7 +142,7 @@ embedded = Lambda(ohe, output_shape=lambda x: (x[0], x[1], vocab_size), argument
 block = embedded
 # convolutions with MaxPooling
 for i in range(3):
-    block = Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid", trainable=True)(block)
+    block = Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid", trainable = True)(block)
     if i == 0:
         block = MaxPooling1D(pool_size=5)(block)
 # LSTM cell

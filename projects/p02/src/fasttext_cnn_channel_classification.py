@@ -8,14 +8,15 @@ from datetime import date
 from fastnumbers import isfloat, isint
 import re
 from gensim import models
+from keras.regularizers import l2
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
-from keras.layers import Dense, Activation, LSTM, Bidirectional
+from keras.layers import Dense, Activation, LSTM, Bidirectional, Dropout, BatchNormalization
 from keras.layers import Embedding, Input, Conv1D
 from keras.layers import concatenate, GlobalMaxPooling1D
 from keras.models import Model
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 MAX_NB_WORDS = 50000
 EMBEDDING_DIM = 300
@@ -144,10 +145,11 @@ def main():
 
     words_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
 
-    x = Embedding(tokenizer.num_words,
-                  EMBEDDING_DIM,
-                  input_length=MAX_SEQUENCE_LENGTH,
-                  trainable=True)(words_input)
+    x = Embedding(embedding_matrix.shape[0],
+                                embedding_matrix.shape[1],
+                                weights=[embedding_matrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)(words_input)
 
     x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
     x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
@@ -155,9 +157,15 @@ def main():
     x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
 
     x = concatenate([x1, x2, x3, x4])
+    x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
+    x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
+    x3 = Conv1D(activation="relu", filters=100, kernel_size=4, padding="same")(x)
+    x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
+    x = concatenate([x1, x2, x3, x4])
     x = GlobalMaxPooling1D()(x)
     x = Dense(100, activation='relu')(x)
-
+    x = Dropout(0.5)(x)
+    x = Dense(100, activation='relu')(x)
     output = Dense(12, activation='softmax')(x)
     model = Model(inputs=words_input, outputs=output)
     model.compile(loss='categorical_crossentropy',

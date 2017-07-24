@@ -9,7 +9,7 @@ from keras.preprocessing.sequence import pad_sequences
 import string
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # data path initialization
 TEXT_DATA_FILE_NEG = "../data/train_neg.csv"
@@ -75,7 +75,7 @@ def load_data():
 
 
 data, labels = load_data()
-labels = np.asarray(labels, dtype = 'int8')
+labels = np.asarray(labels, dtype='int8')
 
 # spliting our original data on train and validation sets
 data_train, data_val, labels_train, labels_val = train_test_split(data,
@@ -114,33 +114,35 @@ X_val = text2sequence(data_val, vocab)
 X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
-from keras.models import Sequential
-from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
+
+
+
+
+from keras.models import Model
+from keras.layers import Input, Lambda, Conv1D, MaxPooling1D, LSTM, Dense
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-NAME = "english_char_cnn_emb"
+NAME = "english_char_cnn_ohe"
 EMBEDDING_DIM = 100
 
-# initialize model
-from keras.layers import concatenate, Input
-from keras.models import Model
+import tensorflow as tf
+# ohe функция
+def ohe(x, sz):
+    return tf.to_float(tf.one_hot(x, sz, on_value=1, off_value=0, axis=-1))
 
-words_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
+in_sentence = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
+embedded = Lambda(ohe, output_shape=lambda x: (x[0], x[1], vocab_size), arguments={"sz": vocab_size})(in_sentence)
+block = embedded
 
-x = Embedding(vocab_size + 1,
-              EMBEDDING_DIM,
-              input_length=MAX_SEQUENCE_LENGTH,
-              trainable=True)(words_input)
 
-x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
-x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
-x3 = Conv1D(activation="relu", filters=100, kernel_size=4, padding="same")(x)
-x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
-x = concatenate([x1, x2, x3, x4])
-x = GlobalMaxPooling1D()(x)
-x = Dense(100, activation='relu')(x)
-output = Dense(1, activation='sigmoid')(x)
-model = Model(inputs=words_input, outputs=output)
+for i in range(3):
+    block = Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid")(block)
+    if i == 0:
+        block = MaxPooling1D(pool_size=5)(block)
+block = LSTM(128, dropout=0.1, recurrent_dropout=0.1)(block)
+block = Dense(100, activation='relu')(block)
+block = Dense(1, activation='sigmoid')(block)
+model = Model(inputs=in_sentence, outputs=block)
 
 # callbacks initialization
 # automatic generation of learning curves

@@ -15,11 +15,11 @@ from keras.layers import Dense, Activation, LSTM, Bidirectional
 from keras.layers import Embedding
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 MAX_NB_WORDS = 50000
 EMBEDDING_DIM = 300
-MAX_SEQUENCE_LENGTH = 110
+MAX_SEQUENCE_LENGTH = 150
 VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
@@ -150,9 +150,12 @@ def main():
 
     model = Sequential()
     model.add(embedding_layer)
-    model.add(Dropout(0.2))
-    model.add(Bidirectional(LSTM(200, dropout=0.1, recurrent_dropout=0.1)))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.25))
+    model.add(LSTM(150, dropout=0.1, recurrent_dropout=0.1, return_sequences=True))
+    model.add(LSTM(150, dropout=0.1, recurrent_dropout=0.1))
+    model.add(Dropout(0.25))
+    model.add(Dense(150))
+    model.add(Dropout(0.5))
     model.add(Dense(12))
     model.add(Activation('softmax'))
 

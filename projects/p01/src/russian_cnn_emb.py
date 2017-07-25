@@ -1,8 +1,4 @@
 
-# coding: utf-8
-
-# In[96]:
-
 import os
 import numpy as np
 from keras import backend as K
@@ -14,7 +10,6 @@ from keras.preprocessing.sequence import pad_sequences
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-# In[97]:
 
 # data path initialization
 BASE_DIR = '../'
@@ -25,6 +20,7 @@ HEADER = True
 # parameters initialization
 VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
+
 
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
@@ -56,9 +52,6 @@ def f1(y_true, y_pred):
     recall = recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall))
 
-
-# In[98]:
-
 def load_data():
     # function for loading data
     x = []
@@ -82,35 +75,22 @@ labels = np.asarray(labels, dtype='int8')
 # In[100]:
 
 # spliting our original data on train and validation sets
-data_train, data_val, labels_train, labels_val =     train_test_split(data, np.asarray(labels, dtype='int8'),
+data_train, data_val, labels_train, labels_val = train_test_split(data, np.asarray(labels, dtype='int8'),
                      test_size=VALIDATION_SPLIT, random_state=RANDOM_SEED, stratify=labels)\
 
 
 # In[101]:
 
 # initialize dictionary size and maximum sentence length
-MAX_NB_WORDS = 81
 MAX_SEQUENCE_LENGTH = 400
 
 
-# In[102]:
+rus_alphabet = ['а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у',
+                'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
 
 import string
 from keras.preprocessing.sequence import pad_sequences
 
-
-# In[103]:
-
-rus_alphabet = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
-
-
-# In[108]:
-
-alphabet = (list(rus_alphabet) + list(string.digits) + list(string.punctuation) + list(string.whitespace))
-vocab_size = len(alphabet)
-
-
-# In[105]:
 
 def create_vocab_set():
     
@@ -144,25 +124,36 @@ X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
 
-# In[107]:
-
 from keras.models import Sequential
 from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-NAME = "char_cnn_emb"
+NAME = "russian_char_cnn_emb"
 EMBEDDING_DIM = 100
 
-# initialize model
-model = Sequential()
-model.add(Embedding(vocab_size+1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))
-model.add(Conv1D(activation="relu", filters=200, kernel_size=4, padding="valid"))
-model.add(Conv1D(activation="relu", filters=200, kernel_size=4, padding="valid"))
-model.add(GlobalMaxPooling1D())
-model.add(Dense(100, activation='relu'))
-model.add(Dropout(0.5))
-model.add(Dense(100, activation='relu'))
-model.add(Dense(1, activation='sigmoid'))
+from keras.layers import concatenate, Input
+from keras.models import Model
+
+
+words_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
+
+x = Embedding(vocab_size+1,
+              EMBEDDING_DIM,
+              input_length=MAX_SEQUENCE_LENGTH,
+              trainable=True)(words_input)
+
+x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
+x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
+x3 = Conv1D(activation="relu", filters=100, kernel_size=4, padding="same")(x)
+x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
+x = concatenate([x1,x2,x3,x4])
+x = GlobalMaxPooling1D()(x)
+x = Dense(100, activation='relu')(x)
+output = Dense(1, activation='sigmoid')(x)
+model = Model(inputs=words_input, outputs=output)
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=[f1])
 
 # callbacks initialization
 # automatic generation of learning curves
@@ -172,7 +163,7 @@ callback_1 = TensorBoard(log_dir='../logs/logs_{}'.format(NAME), histogram_freq=
 callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0, mode='max')
 # best model saving
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
-                                 save_best_only=True, verbose=0, mode='max')
+                                 save_best_only=True, mode='max', verbose=0)
 
 model.compile(loss='binary_crossentropy',
               optimizer='adam',

@@ -1,4 +1,7 @@
 
+# coding: utf-8
+
+import h5py
 import os
 import numpy as np
 from keras import backend as K
@@ -20,7 +23,6 @@ HEADER = True
 # parameters initialization
 VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
-
 
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
@@ -52,6 +54,7 @@ def f1(y_true, y_pred):
     recall = recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall))
 
+
 def load_data():
     # function for loading data
     x = []
@@ -66,30 +69,32 @@ def load_data():
     return x, y
 
 
-# In[99]:
-
 data, labels = load_data()
 labels = np.asarray(labels, dtype='int8')
 
-
-# In[100]:
-
 # spliting our original data on train and validation sets
-data_train, data_val, labels_train, labels_val = train_test_split(data, np.asarray(labels, dtype='int8'),
+data_train, data_val, labels_train, labels_val =     train_test_split(data, np.asarray(labels, dtype='int8'),
                      test_size=VALIDATION_SPLIT, random_state=RANDOM_SEED, stratify=labels)\
 
 
-# In[101]:
 
 # initialize dictionary size and maximum sentence length
+MAX_NB_WORDS = 81
 MAX_SEQUENCE_LENGTH = 400
 
 
-rus_alphabet = ['а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у',
-                'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
-
 import string
 from keras.preprocessing.sequence import pad_sequences
+
+
+
+rus_alphabet = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
+
+
+
+alphabet = (list(rus_alphabet) + list(string.digits) + list(string.punctuation) + list(string.whitespace))
+vocab_size = len(alphabet)
+
 
 
 def create_vocab_set():
@@ -113,7 +118,6 @@ def text2sequence(text, vocab):
     return temp
 
 
-# In[106]:
 
 vocab, vocab_size = create_vocab_set()
 
@@ -124,36 +128,30 @@ X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
 
-from keras.models import Sequential
-from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
+import tensorflow as tf
+# ohe functionn
+def ohe(x, sz):
+    return tf.to_float(tf.one_hot(x, sz, on_value=1, off_value=0, axis=-1))
+
+from keras.models import Model
+from keras.layers import Input, Lambda, MaxPooling1D, Dense, Conv1D, LSTM
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-NAME = "russian_char_cnn_emb"
-EMBEDDING_DIM = 100
-
-from keras.layers import concatenate, Input
-from keras.models import Model
-
-
-words_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
-
-x = Embedding(vocab_size+1,
-              EMBEDDING_DIM,
-              input_length=MAX_SEQUENCE_LENGTH,
-              trainable=True)(words_input)
-
-x1 = Conv1D(activation="relu", filters=100, kernel_size=2, padding="same")(x)
-x2 = Conv1D(activation="relu", filters=100, kernel_size=3, padding="same")(x)
-x3 = Conv1D(activation="relu", filters=100, kernel_size=4, padding="same")(x)
-x4 = Conv1D(activation="relu", filters=100, kernel_size=5, padding="same")(x)
-x = concatenate([x1,x2,x3,x4])
-x = GlobalMaxPooling1D()(x)
-x = Dense(100, activation='relu')(x)
-output = Dense(1, activation='sigmoid')(x)
-model = Model(inputs=words_input, outputs=output)
-model.compile(loss='binary_crossentropy',
-              optimizer='adam',
-              metrics=[f1])
+NAME = "russian_char_cnn_ohe"
+# input initialization
+in_sentence = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int64')
+# Lambda layer for ohe transformation
+embedded = Lambda(ohe, output_shape=lambda x: (x[0], x[1], vocab_size), arguments={"sz": vocab_size})(in_sentence)
+block = embedded
+# convolutions with MaxPooling
+for i in range(3):
+    block = Conv1D(activation="relu", filters=100, kernel_size=4, padding="valid")(block)
+    if i == 0:
+        block = MaxPooling1D(pool_size=5)(block)
+# LSTM cell
+block = LSTM(128, dropout=0.1, recurrent_dropout=0.1)(block)
+block = Dense(100, activation='relu')(block)
+block = Dense(1, activation='sigmoid')(block)
 
 # callbacks initialization
 # automatic generation of learning curves
@@ -163,13 +161,16 @@ callback_1 = TensorBoard(log_dir='../logs/logs_{}'.format(NAME), histogram_freq=
 callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0, mode='max')
 # best model saving
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
-                                 save_best_only=True, mode='max', verbose=0)
+                                 save_best_only=True, verbose=0, mode='max')
 
+# initialize model
+model = Model(inputs=in_sentence, outputs=block)
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=[f1])
 
+
 model.summary()
+
 model.fit(X_train, labels_train, validation_data=[X_val, labels_val],
           batch_size=1024, epochs=1000, callbacks=[callback_1, callback_2, callback_3])
-

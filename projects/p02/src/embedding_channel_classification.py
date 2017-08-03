@@ -63,8 +63,6 @@ RANDOM_SEED = 42
 # initialize dictionary size and maximum sentence length
 MAX_SEQUENCE_LENGTH = 150
 
-NAME = "simple ohe lstm"
-
 data = pd.read_csv(os.path.join(dir_train, 'train_set.csv'), usecols=range(1,11), parse_dates=['timestamp', 'thread_timestamp'])
 data = data[
     data.channel.isin(['career', 'big_data', 'deep_learning', 'kaggle_crackers',

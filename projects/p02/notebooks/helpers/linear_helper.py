@@ -103,6 +103,6 @@ def save_model(model, name):
         pickle.dump(model, f)
 
 def load_model(name):
-    with open(os.path.join(dir_models, '{0}.pickle'.format(name)), 'rb') as f:
+    with open(name, 'rb') as f:
         model = pickle.load(f)
     return model

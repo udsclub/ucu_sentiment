@@ -9,7 +9,7 @@ import lightgbm as lgb
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 dir_train = '../../data'
-dir_models = '../../models'
+dir_models = '../models'
 
 mappings = {
     'career': 0,
@@ -32,8 +32,8 @@ VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
 
-def load_data_gbm():
-    data = pd.read_csv(os.path.join(dir_train, 'train_set.csv'), usecols=range(1, 11),
+def load_data_gbm(name):
+    data = pd.read_csv(name, usecols=range(1, 11),
                        parse_dates=['timestamp', 'thread_timestamp'])
     data = data[
         data.channel.isin(['career', 'big_data', 'deep_learning', 'kaggle_crackers',
@@ -106,4 +106,4 @@ def save_model(model, name):
     model.save_model(os.path.join(dir_models, '{}.model'.format(name)))
 
 def load_model(name):
-    return lgb.Booster(os.path.join(dir_models, '{}.txt'.format(name)))
+    return lgb.Booster(model_file=name)

@@ -41,7 +41,7 @@ MAX_SEQUENCE_LENGTH = 150
 RUS_ALPHABET = ['а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','ш','щ','ъ','ы','ь','э','ю','я']
 
 def create_vocab_set():
-    alphabet = (rus_alphabet + list(string.ascii_lowercase) + list(string.digits) + list(string.punctuation) + [' ', '\n'])
+    alphabet = (RUS_ALPHABET + list(string.ascii_lowercase) + list(string.digits) + list(string.punctuation) + [' ', '\n'])
     vocab_size = len(alphabet)
     vocab = {}
     for ix, t in enumerate(alphabet):
@@ -172,8 +172,8 @@ def train_model_lstm_channel_classification():
               batch_size=1024, epochs=100, callbacks=[callback_1, callback_2, callback_3])
     return model
 
-def load_model(name):
-    model = load_model("../models/{}".format(name))
+def load_model_nn(name):
+    model = load_model(name)
     model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])

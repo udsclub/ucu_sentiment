@@ -52,12 +52,12 @@ val_data['channel'] = val_data.channel.map(mappings)
 val_data = val_data.sort_values('channel').reset_index()[['channel', 'text']]
 
 train_data.text = train_data.text.astype(str)\
-    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w]*@[\w]*)', ' ', x))\
+    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x))\
     .apply(lambda x: re.sub('\s+', ' ', x))
 train_data = train_data[~train_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 
 val_data.text = val_data.text.astype(str)\
-    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w]*@[\w]*)', ' ', x))\
+    .apply(lambda x: re.sub('(<\S+>:?)|(\s?:\S+:\s?)|(&gt;)|([\w\.]*@[\w\.]*)', ' ', x))\
     .apply(lambda x: re.sub('\s+', ' ', x))
 val_data = val_data[~val_data.text.apply(lambda x: isfloat(x) or isint(x) or len(x) < 20)]
 
@@ -93,6 +93,6 @@ eval_matrix = [lgb_val]
 eval_name = ['lgb_val']
 
 final_lgb = lgb.train(lgb_params, lgb_train, valid_sets=eval_matrix, valid_names=eval_name,
-                      num_boost_round=1000, early_stopping_rounds=10, verbose_eval=5)
+                      num_boost_round=1000, early_stopping_rounds=10, verbose_eval=1)
 
 final_lgb.save_model(os.path.join(dir_models, 'lightgbm_model.txt'), num_iteration=final_lgb.best_iteration)

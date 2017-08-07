@@ -13,10 +13,14 @@ Results: f1-score = 0.9551<br>
 
 **Baseline:**
 
-Preprocessing: TfidfVectorizer(ngram_range=(1,5), max_features=1000000, min_df=4)<br>
-Model: SVC(kernel = 'linear', C = 1)<br>
+Preprocessing: TfidfVectorizer(analyzer='char', ngram_range=(1,7), max_features=1000000)<br>
+Model: LogisticRegression(C = 50)<br>
 Cross-validation: train_test_split(test_size=0.1, random_state=42)<br>
-Results: f1-score = 0.9062<br>
+Results: f1-score = 0.9252<br><br>
+
+Data:<br>
+0 - 15182<br>
+1 - 9380<br>
 
 ## French corpus
 

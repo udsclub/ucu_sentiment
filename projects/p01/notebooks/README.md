@@ -18,16 +18,16 @@ Model: SVC(kernel = 'linear', C = 1)<br>
 Cross-validation: train_test_split(test_size=0.1, random_state=42)<br>
 Results: f1-score = 0.9062<br>
 
-##Spanish corpus
+## Spanish corpus
 
 **Baseline:**
 
 Preprocessing: CountVectorizer(ngram_range=(1,5), min_df=4, max_features=1000000)<br>
 Model: LogisticRegression()<br>
 Cross-validation: train_test_split(test_size=0.1, random_state=42)<br>
-Results: f1-score = 0.8352<br>
+Results: f1-score = 0.8352<br><br>
 
-Data:
-0    30096
-1    12439
-Source: movie reviews webpages
+Data:<br>
+0 - 30096<br>
+1 - 12439<br>
+Source: movie reviews webpages<br>

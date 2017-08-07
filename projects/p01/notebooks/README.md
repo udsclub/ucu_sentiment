@@ -53,3 +53,19 @@ Data:<br>
 0 - 30096<br>
 1 - 12439<br>
 Source: movie reviews webpages<br>
+
+## German corpus
+
+**Baseline:**
+
+Preprocessing: TfidfVectorizer(ngram_range=(1,5), max_features=1000000, min_df=4)<br>
+Model: svm.SVC(kernel = 'linear', C = 1)<br>
+Cross-validation: train_test_split(test_size=0.1, random_state=42)<br>
+Results: f1-score = 0.8801<br><br>
+
+Data:<br>
+0 - 49470<br>
+1 - 20914<br>
+Source: movie reviews webpages<br>
+
+

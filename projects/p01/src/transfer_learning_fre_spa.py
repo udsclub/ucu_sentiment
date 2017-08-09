@@ -1,40 +1,29 @@
+import os
 import numpy as np
 from keras import backend as K
-import os
+import csv
 
 from sklearn.model_selection import train_test_split
+
 from keras.preprocessing.sequence import pad_sequences
+import string
 
 from keras.models import Sequential
 from keras.layers import GlobalMaxPooling1D, Conv1D, SpatialDropout1D, Embedding, Dense, BatchNormalization
-from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-TEXT_DATA_FILE = "../data/french_corpus.csv"
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+# data path initialization
+TEXT_DATA_FILE = "../data/spanish_movies.csv"
 HEADER = True
 
 # parameters initialization
 VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-
-# data path initialization
-def load_data():
-    x = []
-    y = []
-    with open(TEXT_DATA_FILE, "r") as f:
-        if HEADER:
-            _ = next(f)
-        for line in f:
-            temp_y, temp_x = line.rstrip("\n").split("|", 1)
-            x.append(temp_x.lower())
-            y.append(int(temp_y))
-
-    return x, y
-
-
+np.random.seed(RANDOM_SEED)
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
         """Recall metric.
@@ -67,33 +56,34 @@ def f1(y_true, y_pred):
     return 2 * ((precision * recall) / (precision + recall))
 
 
+def replace_spanish_chars(x):
+    for i, j in zip(['ó', 'ñ'], ["o", "n"]):
+        x = x.replace(i, j)
+    return x
+
+
+def load_data():
+    x = []
+    y = []
+    with open(TEXT_DATA_FILE, "r") as f:
+        if HEADER:
+            _ = next(f)
+        for line in f:
+            temp_y, temp_x = line.rstrip("\n").split("|", 1)
+            x.append(replace_spanish_chars(temp_x.lower()))
+            y.append(int(temp_y))
+    return x, y
+
+
 data, labels = load_data()
 labels = np.asarray(labels, dtype='int8')
 
 # spliting our original data on train and validation sets
-data_train_old, data_val, labels_train_old, labels_val = train_test_split(data,
-                                                                  np.asarray(labels, dtype='int8'),
-                                                                  test_size=VALIDATION_SPLIT,
-                                                                  random_state=RANDOM_SEED,
-                                                                  stratify=labels)
-
-s_max = np.sum(labels_train_old)
-data_train = []
-labels_train = []
-s = 0
-for i, j in zip(data_train_old, labels_train_old):
-    if (s_max > s) and (j != 1):
-        data_train.append(i)
-        labels_train.append(j)
-        s += 1
-    else:
-        if j == 1:
-            data_train.append(i)
-            labels_train.append(j)
-
-del data_train_old, labels_train_old
-labels_train = np.array(labels_train, 'int8')
-print(len(data_train), np.sum(labels_train))
+data_train, data_val, labels_train, labels_val = train_test_split(data,
+                                                                  np.asarray(labels, dtype = 'int8'),
+                                                                  test_size = VALIDATION_SPLIT,
+                                                                  random_state = RANDOM_SEED,
+                                                                  stratify = labels)
 
 MAX_SEQUENCE_LENGTH = 1000
 
@@ -109,7 +99,7 @@ def create_vocab_set():
     vocab_size = len(alphabet)
     vocab = {}
     for ix, t in enumerate(alphabet):
-        vocab[t] = ix + 1
+        vocab[t] = ix+1
     return vocab, vocab_size
 
 
@@ -123,7 +113,6 @@ def text2sequence(text, vocab):
                 temp[-1].append(char)
     return temp
 
-
 vocab, vocab_size = create_vocab_set()
 
 X_train = text2sequence(data_train, vocab)
@@ -132,12 +121,13 @@ X_val = text2sequence(data_val, vocab)
 X_train = pad_sequences(X_train, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
-NAME = "french_char_cnn_emb"
+from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense, GlobalAveragePooling1D
+from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
+from keras.optimizers import Adam
+NAME = "transfer_learning_fre_to_spa"
 EMBEDDING_DIM = 100
 
 # initialize model
-from keras.layers import concatenate, Input
-from keras.models import Model
 
 model = Sequential()
 model.add(Embedding(vocab_size + 1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))
@@ -159,6 +149,8 @@ callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0,
 # best model saving
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
                              save_best_only=True, verbose=0, mode='max')
+
+model.load_weights('models/model_french_char_cnn_emb.hdf5')
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=[f1])

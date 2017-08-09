@@ -183,4 +183,4 @@ model.compile(loss='binary_crossentropy',
 model.summary()
 
 model.fit(X_train, labels_train, validation_data=[X_val, labels_val],
-          batch_size=256, epochs=1000, callbacks=[callback_1, callback_2, callback_3, callback_4])
+          batch_size=128, epochs=1000, callbacks=[callback_1, callback_2, callback_3, callback_4])

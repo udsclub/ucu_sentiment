@@ -17,8 +17,7 @@ VALIDATION_SPLIT = 0.1
 RANDOM_SEED = 42
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # data path initialization
 def load_data():
@@ -136,6 +135,8 @@ from keras.models import Model
 # x = Dense(100, activation='relu')(x)
 # output = Dense(1, activation='sigmoid')(x)
 # model = Model(inputs=words_input, outputs=output)
+
+np.random.seed(42)
 
 model = Sequential()
 model.add(Embedding(vocab_size + 1, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH, trainable=True))

@@ -144,7 +144,7 @@ X_val = pad_sequences(X_val, maxlen=MAX_SEQUENCE_LENGTH, value=0)
 
 from keras.models import Sequential
 from keras.layers import GlobalMaxPooling1D, Conv1D, Dropout, Embedding, Dense
-from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
+from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint, LearningRateScheduler
 
 NAME = "transfer_learning_emb_ukr"
 EMBEDDING_DIM = 100
@@ -182,11 +182,20 @@ callback_2 = EarlyStopping(monitor='val_f1', min_delta=0, patience=5, verbose=0,
 callback_3 = ModelCheckpoint("models/model_{}.hdf5".format(NAME), monitor='val_f1',
                              save_best_only=True, mode='max', verbose=0)
 
+def update_func(i):
+    base = 0.01
+    lr = base / (10**(i // 5 + 1))
+    if lr < 0.00001:
+        return 0.00001
+    return lr
+
+callback_4 = LearningRateScheduler(update_func)
+
 model.compile(loss='binary_crossentropy',
-              optimizer=Adam(lr=0.0001),
+              optimizer=Adam(lr=0.001),
               metrics=[f1])
 
 model.summary()
 model.fit(X_train, labels_train, validation_data=[X_val, labels_val],
-          batch_size=16, epochs=1000, callbacks=[callback_1, callback_2, callback_3])
+          batch_size=64, epochs=1000, callbacks=[callback_1, callback_2, callback_3, callback_4])
 
